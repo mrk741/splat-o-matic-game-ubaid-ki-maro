@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ubaid ki Maro</title>
+    <!-- Tailwind CSS for rich, responsive UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for playful icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Playful and modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: radial-gradient(circle at top, #0f172a 0%, #020617 100%);
+            touch-action: manipulation; /* Improves touch response on mobile */
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1, h2, h3, .brand-font {
+            font-family: 'Fredoka One', sans-serif;
+        }
+        /* Custom screen shaking animation on hit */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(0px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(2px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(2px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .hit-shake {
+            animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        /* Custom pulses for score updates */
+        @keyframes scorePop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: #f59e0b; }
+            100% { transform: scale(1); }
+        }
+        .score-pulse {
+            animation: scorePop 0.4s ease-out;
+        }
+        
+        /* Hide scrollbar for weapons list */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col justify-between overflow-x-hidden antialiased">
+
+    <header class="w-full py-3 px-4 sm:px-6 bg-slate-900/85 backdrop-blur-md border-b border-sky-500/20 shadow-lg z-30 sticky top-0">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
+                <div class="bg-sky-500 text-white p-2 sm:p-2.5 rounded-2xl shadow-lg shadow-sky-500/40 animate-bounce">
+                    <span class="text-2xl sm:text-3xl">👦</span>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-3xl tracking-wide bg-gradient-to-r from-sky-400 via-blue-400 to-indigo-500 bg-clip-text text-transparent text-center md:text-left">
+                        Ubaid ki Maro
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 hidden sm:block">The Ultimate Target Practice!</p>
+                </div>
+            </div>
+            
+            <!-- Live Match Counters -->
+            <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 font-semibold text-xs sm:text-sm">
+                <!-- Current Stage -->
+                <div class="bg-slate-800/90 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-sky-500/30 flex items-center gap-2">
+                    <span class="text-sky-400 uppercase tracking-wider text-[10px] sm:text-xs">Stage:</span>
+                    <span id="stageCounter" class="text-lg sm:text-xl text-sky-400 font-bold">1</span>
+                </div>
+                <!-- Player Score -->
+                <div class="bg-slate-800/90 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-slate-700 flex items-center gap-2">
+                    <span class="text-emerald-400 text-[10px] sm:text-xs uppercase">Hits:</span>
+                    <span id="playerScore" class="text-lg sm:text-xl text-emerald-400 font-bold">0</span>
+                </div>
+                <!-- Boss/AI Score -->
+                <div class="bg-slate-800/90 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-slate-700 flex items-center gap-2">
+                    <span class="text-amber-400 text-[10px] sm:text-xs uppercase">Misses:</span>
+                    <span id="bossScore" class="text-lg sm:text-xl text-amber-500 font-bold">0</span>
+                </div>
+                <!-- Shots Remaining Tracker -->
+                <div class="bg-slate-800/90 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-slate-700 flex items-center gap-1.5" id="chancesWrapper">
+                    <span class="text-slate-400 text-[10px] sm:text-xs uppercase mr-1">Shots:</span>
+                    <!-- Hearts will render dynamically here -->
+                    <span id="shotsLeft" class="flex gap-1 text-sky-500">
+                        <!-- Filled dynamically -->
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notice the order classes: on mobile (default), canvas is order-1 and controls are order-2 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-2 sm:px-4 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 items-start">
+        
+        <!-- Center/Right Column: Interactive Target Arena & Game HUD -->
+        <section class="lg:col-span-3 flex flex-col gap-4 order-1 lg:order-2 w-full">
+            
+            <!-- Game Board Wrapper -->
+            <div class="relative bg-slate-950 border-4 border-slate-800 rounded-[2rem] overflow-hidden shadow-2xl aspect-[4/3] sm:aspect-video w-full flex items-center justify-center lg:max-h-[70vh]" id="gameWrapper">
+                
+                <!-- Background Grid System -->
+                <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b1a_1px,transparent_1px),linear-gradient(to_bottom,#1e293b1a_1px,transparent_1px)] bg-[size:2rem_2rem] sm:bg-[size:4rem_4rem] pointer-events-none"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/60 pointer-events-none"></div>
+
+                <!-- Interactive Game Canvas -->
+                <canvas id="gameCanvas" class="cursor-crosshair w-full h-full block z-10 touch-none"></canvas>
+
+                <!-- Audio Toggle Icon overlay -->
+                <button id="audioToggleBtn" class="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 bg-slate-900/90 text-slate-200 hover:text-white border border-slate-800 hover:border-slate-700 rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center transition-all shadow-lg" title="Toggle Audio">
+                    <i class="fa-solid fa-volume-high text-xs sm:text-base" id="audioIcon"></i>
+                </button>
+
+                <!-- Floating Combo Text overlays -->
+                <div id="hitToast" class="absolute pointer-events-none select-none text-rose-500 font-extrabold text-3xl sm:text-4xl hidden z-20 drop-shadow-[0_4px_6px_rgba(0,0,0,0.8)] uppercase italic">SPLAT!</div>
+                
+                <!-- Game Over/Stage Complete Modals integrated seamlessly in the canvas wrapper -->
+                <div id="gameStateModal" class="absolute inset-0 bg-slate-950/95 z-30 flex flex-col items-center justify-center text-center p-4 sm:p-6 hidden backdrop-blur-sm">
+                    <div id="modalEmoji" class="text-6xl sm:text-7xl mb-4 animate-bounce">🏆</div>
+                    <h2 id="modalTitle" class="text-2xl sm:text-3xl text-white font-bold mb-2">Stage 1 Complete!</h2>
+                    <p id="modalDesc" class="text-xs sm:text-sm text-slate-400 max-w-md mb-6">Great hit! Ready for the next speed?</p>
+                    <div class="flex gap-4">
+                        <button id="modalActionBtn" class="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold px-6 sm:px-8 py-3 rounded-2xl shadow-xl transition-all text-sm sm:text-base">
+                            Next Stage <i class="fa-solid fa-circle-play ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Onboarding Helper message -->
+                <div id="canvasOverlayMsg" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 text-center p-6 z-20 pointer-events-none transition-all duration-300">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-sky-500/15 flex items-center justify-center border border-sky-500/30 animate-pulse mb-4 text-2xl sm:text-3xl">⏳</div>
+                    <h2 class="text-lg sm:text-xl text-white mb-2 font-bold tracking-wide">Loading Target Arena...</h2>
+                    <p class="text-[10px] sm:text-xs text-slate-400 max-w-sm">Fetching face assets. Tap to throw your weapon once ready!</p>
+                </div>
+            </div>
+
+            <!-- Action Control bar below game canvas -->
+            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <!-- Helper Tips / Stage Multipliers -->
+                <div class="flex items-center gap-2.5 text-[10px] sm:text-xs text-slate-400 text-center sm:text-left">
+                    <i class="fa-solid fa-circle-info text-amber-500 text-base animate-pulse hidden sm:block"></i>
+                    <span><strong>Protip:</strong> Higher stages make the target move faster and dash randomly!</span>
+                </div>
+
+                <!-- Functional Reset -->
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
+                    <button id="resetGameBtn" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-5 py-2.5 rounded-xl border border-slate-700 hover:border-slate-600 font-bold transition-all flex items-center justify-center gap-2 text-xs shadow-md">
+                        <i class="fa-solid fa-rotate-left"></i> Restart Game
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-1 space-y-4 sm:space-y-6 flex flex-col justify-start order-2 lg:order-1 w-full pb-10 lg:pb-0">
+            
+            <!-- Setup Target Card -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden backdrop-blur-sm">
+                <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-sky-500 to-indigo-500"></div>
+                
+                <h3 class="text-base sm:text-lg text-white mb-3 flex items-center gap-2 font-bold">
+                    <i class="fa-solid fa-user-check text-sky-400"></i> 1. Choose Target Face
+                </h3>
+                
+                <!-- Fixed Presets Grid for Attached Images -->
+                <div class="grid grid-cols-4 lg:grid-cols-2 gap-2 sm:gap-3 pl-2">
+                    <!-- Face 1 -->
+                    <button class="face-preset-btn border-2 border-sky-500 bg-slate-800 rounded-xl overflow-hidden shadow-lg transition-transform transform hover:scale-105 active" data-face="0">
+                        <img src="https://cdn.shopify.com/s/files/1/0762/7561/3928/files/464f133c-dccf-4499-87d0-0a6533e31383.png" alt="Face 1" class="w-full h-16 sm:h-24 object-cover pointer-events-none">
+                    </button>
+                    <!-- Face 2 -->
+                    <button class="face-preset-btn border-2 border-slate-700 hover:border-sky-400 bg-slate-900 rounded-xl overflow-hidden shadow-lg transition-transform transform hover:scale-105" data-face="1">
+                        <img src="https://cdn.shopify.com/s/files/1/0762/7561/3928/files/f8d92a6f-fce8-4798-8b8e-ac1e997e85ef.png" alt="Face 2" class="w-full h-16 sm:h-24 object-cover pointer-events-none">
+                    </button>
+                    <!-- Face 3 -->
+                    <button class="face-preset-btn border-2 border-slate-700 hover:border-sky-400 bg-slate-900 rounded-xl overflow-hidden shadow-lg transition-transform transform hover:scale-105" data-face="2">
+                        <img src="https://cdn.shopify.com/s/files/1/0762/7561/3928/files/2e949876-d8a8-4a39-bd00-970efa1c05df.png" alt="Face 3" class="w-full h-16 sm:h-24 object-cover pointer-events-none">
+                    </button>
+                    <!-- Face 4 -->
+                    <button class="face-preset-btn border-2 border-slate-700 hover:border-sky-400 bg-slate-900 rounded-xl overflow-hidden shadow-lg transition-transform transform hover:scale-105" data-face="3">
+                        <img src="https://cdn.shopify.com/s/files/1/0762/7561/3928/files/c836ffa6-b5bf-4220-9466-ac55cfc180bf.png" alt="Face 4" class="w-full h-16 sm:h-24 object-cover pointer-events-none">
+                    </button>
+                </div>
+            </div>
+
+            <!-- Weapon Select Card (Scrollable on very small mobile screens) -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden backdrop-blur-sm flex-grow">
+                <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-amber-500 to-rose-500"></div>
+                <h3 class="text-base sm:text-lg text-white mb-3 flex items-center gap-2 font-bold">
+                    <i class="fa-solid fa-bomb text-amber-500"></i> 2. Choose Weapon
+                </h3>
+                
+                <div class="space-y-2 sm:space-y-3 max-h-[40vh] lg:max-h-[500px] overflow-y-auto no-scrollbar pl-2 pb-2">
+                    <!-- Tomato Option -->
+                    <button class="weapon-select-btn active-weapon w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border-2 border-amber-500 bg-amber-500/10 text-left transition-all relative overflow-hidden group" data-weapon="tomato">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl sm:text-3xl filter drop-shadow group-hover:scale-110 transition-transform">🍅</span>
+                            <div>
+                                <h4 class="font-bold text-white text-xs sm:text-sm">Ripe Tomato</h4>
+                                <p class="text-[9px] sm:text-[10px] text-slate-400">Soft, juicy wet splatter!</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Egg Option -->
+                    <button class="weapon-select-btn w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950 text-left transition-all relative overflow-hidden group" data-weapon="egg">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl sm:text-3xl filter drop-shadow group-hover:scale-110 transition-transform">🥚</span>
+                            <div>
+                                <h4 class="font-bold text-white text-xs sm:text-sm">Raw Egg</h4>
+                                <p class="text-[9px] sm:text-[10px] text-slate-400">Slime-dripping yellow yolk!</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Slipper Option -->
+                    <button class="weapon-select-btn w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950 text-left transition-all relative overflow-hidden group" data-weapon="slipper">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl sm:text-3xl filter drop-shadow group-hover:scale-110 transition-transform">🩴</span>
+                            <div>
+                                <h4 class="font-bold text-white text-xs sm:text-sm">Flip Slipper</h4>
+                                <p class="text-[9px] sm:text-[10px] text-slate-400">Satisfying heavy thumping slap!</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Banana Option -->
+                    <button class="weapon-select-btn w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950 text-left transition-all relative overflow-hidden group" data-weapon="banana">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl sm:text-3xl filter drop-shadow group-hover:scale-110 transition-transform">🍌</span>
+                            <div>
+                                <h4 class="font-bold text-white text-xs sm:text-sm">Slippery Banana</h4>
+                                <p class="text-[9px] sm:text-[10px] text-slate-400">Mushy yellow peel splatter!</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Mango Option -->
+                    <button class="weapon-select-btn w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950 text-left transition-all relative overflow-hidden group" data-weapon="mango">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl sm:text-3xl filter drop-shadow group-hover:scale-110 transition-transform">🥭</span>
+                            <div>
+                                <h4 class="font-bold text-white text-xs sm:text-sm">Juicy Mango</h4>
+                                <p class="text-[9px] sm:text-[10px] text-slate-400">Sticky, sweet orange explosion!</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Watermelon Option -->
+                    <button class="weapon-select-btn w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950 text-left transition-all relative overflow-hidden group" data-weapon="watermelon">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl sm:text-3xl filter drop-shadow group-hover:scale-110 transition-transform">🍉</span>
+                            <div>
+                                <h4 class="font-bold text-white text-xs sm:text-sm">Watermelon</h4>
+                                <p class="text-[9px] sm:text-[10px] text-slate-400">Heavy red splash with seeds!</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Baseball Bat Option -->
+                    <button class="weapon-select-btn w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950 text-left transition-all relative overflow-hidden group" data-weapon="bat">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl sm:text-3xl filter drop-shadow group-hover:scale-110 transition-transform">🏏</span>
+                            <div>
+                                <h4 class="font-bold text-white text-xs sm:text-sm">Baseball Bat</h4>
+                                <p class="text-[9px] sm:text-[10px] text-slate-400">Whack! Solid wood strike!</p>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer credits -->
+    <footer class="w-full py-5 sm:py-6 text-center text-xs sm:text-sm text-slate-400 border-t border-slate-800/50 bg-slate-900/30 mt-auto">
+        <p class="font-bold text-rose-500 mb-1.5 text-sm sm:text-base tracking-wide drop-shadow-md">❤️ Best Buddies forever ❤️</p>
+        <p class="px-4">Special Thanks for creating game: <span class="text-sky-400 font-bold">Saddam, Umair, Zohaib, Nabeel, and Waqas</span></p>
+    </footer>
+
+    <script>
+        // Core game settings & stage calibrations
+        const CONFIG = {
+            maxAttachedSplats: 80,
+            gravity: 0.22,
+            soundEnabled: true,
+            totalChances: 5,
+            stages: {
+                1: { speed: 1.5, dodgeRate: 0.00, size: 65, name: "Stage 1: Sluggish stroll" },
+                2: { speed: 2.5, dodgeRate: 0.10, size: 60, name: "Stage 2: Active Runaway" },
+                3: { speed: 3.8, dodgeRate: 0.25, size: 55, name: "Stage 3: Erratic Dashes" },
+                4: { speed: 5.2, dodgeRate: 0.45, size: 50, name: "Stage 4: Ninja Dodging" },
+                5: { speed: 6.8, dodgeRate: 0.65, size: 45, name: "Stage 5: Untouchable" }
+            }
+        };
+
+        // Active State Vectors
+        const STATE = {
+            stage: 1,
+            playerScore: 0,
+            bossScore: 0,
+            chancesLeft: 5,
+            activeWeapon: 'tomato', // tomato, egg, slipper, banana, mango, watermelon, bat
+            loadedFaces: [],        // Array to store the 4 Image objects
+            selectedFaceIndex: 0,   // Defaults to first image
+            // The running target model (Boy)
+            target: {
+                x: 300,
+                y: 200,
+                vx: 2,
+                vy: 1.5,
+                radius: 40,
+                animationFrame: 0,
+                splats: [] // Splats attached directly to this running target!
+            },
+            projectiles: [],
+            particles: [],
+            screenShake: 0,
+            isTransitioning: true, // Start true while loading images
+            bgSplats: []
+        };
+
+        // DOM caching
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameWrapper = document.getElementById('gameWrapper');
+        const faceBtns = document.querySelectorAll('.face-preset-btn');
+        const weaponSelectBtns = document.querySelectorAll('.weapon-select-btn');
+        const resetGameBtn = document.getElementById('resetGameBtn');
+        const audioToggleBtn = document.getElementById('audioToggleBtn');
+        const audioIcon = document.getElementById('audioIcon');
+        const hitToast = document.getElementById('hitToast');
+        const canvasOverlayMsg = document.getElementById('canvasOverlayMsg');
+        
+        // Modals & Scores
+        const stageCounter = document.getElementById('stageCounter');
+        const playerScoreEl = document.getElementById('playerScore');
+        const bossScoreEl = document.getElementById('bossScore');
+        const shotsLeftEl = document.getElementById('shotsLeft');
+        const gameStateModal = document.getElementById('gameStateModal');
+        const modalEmoji = document.getElementById('modalEmoji');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDesc = document.getElementById('modalDesc');
+        const modalActionBtn = document.getElementById('modalActionBtn');
+
+        // External Shopify Target Images
+        const imageSources = [
+            'https://cdn.shopify.com/s/files/1/0762/7561/3928/files/464f133c-dccf-4499-87d0-0a6533e31383.png',
+            'https://cdn.shopify.com/s/files/1/0762/7561/3928/files/f8d92a6f-fce8-4798-8b8e-ac1e997e85ef.png',
+            'https://cdn.shopify.com/s/files/1/0762/7561/3928/files/2e949876-d8a8-4a39-bd00-970efa1c05df.png',
+            'https://cdn.shopify.com/s/files/1/0762/7561/3928/files/c836ffa6-b5bf-4220-9466-ac55cfc180bf.png'
+        ];
+
+        let imagesLoadedCount = 0;
+
+        function checkImagesReady() {
+            if (imagesLoadedCount === imageSources.length) {
+                // Unlock game
+                STATE.isTransitioning = false;
+                if (canvasOverlayMsg) {
+                    canvasOverlayMsg.classList.add('opacity-0');
+                    setTimeout(() => { canvasOverlayMsg.classList.add('hidden'); }, 300);
+                }
+                updateScoreUI();
+            }
+        }
+
+        // Preload external images
+        imageSources.forEach((src, index) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+                imagesLoadedCount++;
+                checkImagesReady();
+            };
+            img.onerror = () => {
+                console.warn(`Failed to load image: ${src}. Proceeding anyway.`);
+                imagesLoadedCount++;
+                checkImagesReady();
+            };
+            img.src = src;
+            STATE.loadedFaces[index] = img;
+        });
+
+        const soundEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            },
+            play(type) {
+                if (!CONFIG.soundEnabled) return;
+                this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                try {
+                    // Route sound types based on weapon characteristic
+                    if (type === 'tomato' || type === 'mango' || type === 'watermelon') this.playSplat(type);
+                    else if (type === 'egg' || type === 'banana') this.playMush();
+                    else if (type === 'slipper') this.playSlap();
+                    else if (type === 'bat') this.playWhack();
+                    else if (type === 'whoosh') this.playWhoosh();
+                    else if (type === 'cheer') this.playCheer();
+                    else if (type === 'fail') this.playFail();
+                } catch (e) {
+                    console.warn("Audio Context blocked.", e);
+                }
+            },
+            playSplat(type) {
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(type === 'watermelon' ? 180 : 260, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.16);
+                gain.gain.setValueAtTime(0.7, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.16);
+            },
+            playMush() {
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(190, now);
+                osc.frequency.exponentialRampToValueAtTime(55, now + 0.22);
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.26);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.26);
+            },
+            playSlap() {
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+                gain.gain.setValueAtTime(0.9, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.26);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.26);
+            },
+            playWhack() {
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            },
+            playWhoosh() {
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(350, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.32);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.2, now + 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.32);
+            },
+            playCheer() {
+                const now = this.ctx.currentTime;
+                const chord = [261.63, 329.63, 392.00, 523.25];
+                chord.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.15, now + idx * 0.05 + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                });
+            },
+            playFail() {
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.6);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.7);
+            }
+        };
+
+        function resizeCanvas() {
+            const rect = gameWrapper.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', resizeCanvas);
+
+        // Face selector
+        faceBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                faceBtns.forEach(b => {
+                    b.classList.remove('border-sky-500', 'bg-slate-800');
+                    b.classList.add('border-slate-700', 'bg-slate-900');
+                });
+                btn.classList.add('border-sky-500', 'bg-slate-800');
+                btn.classList.remove('border-slate-700', 'bg-slate-900');
+                STATE.selectedFaceIndex = parseInt(btn.getAttribute('data-face'));
+                
+                // Clear active splats when changing face
+                STATE.target.splats = [];
+                STATE.bgSplats = [];
+            });
+        });
+
+        // Weapon selector
+        weaponSelectBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                weaponSelectBtns.forEach(b => {
+                    b.className = "weapon-select-btn w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950 text-left transition-all relative overflow-hidden group";
+                });
+                btn.className = "weapon-select-btn active-weapon w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border-2 border-amber-500 bg-amber-500/10 text-left transition-all relative overflow-hidden group";
+                STATE.activeWeapon = btn.getAttribute('data-weapon');
+            });
+        });
+
+        audioToggleBtn.addEventListener('click', () => {
+            CONFIG.soundEnabled = !CONFIG.soundEnabled;
+            audioIcon.className = CONFIG.soundEnabled ? 'fa-solid fa-volume-high text-xs sm:text-base' : 'fa-solid fa-volume-xmark text-xs sm:text-base';
+            if (CONFIG.soundEnabled) soundEngine.init();
+        });
+
+        resetGameBtn.addEventListener('click', () => {
+            resetGameState();
+        });
+
+        function resetGameState() {
+            STATE.stage = 1;
+            STATE.playerScore = 0;
+            STATE.bossScore = 0;
+            STATE.chancesLeft = CONFIG.totalChances;
+            STATE.projectiles = [];
+            STATE.particles = [];
+            STATE.bgSplats = [];
+            STATE.target.splats = [];
+            STATE.target.x = canvas.width / 2;
+            STATE.target.y = canvas.height / 2;
+            
+            updateScoreUI();
+            gameStateModal.classList.add('hidden');
+            STATE.isTransitioning = false;
+        }
+
+        function updateScoreUI() {
+            stageCounter.textContent = STATE.stage;
+            playerScoreEl.textContent = STATE.playerScore;
+            bossScoreEl.textContent = STATE.bossScore;
+
+            let heartHTML = '';
+            for (let i = 0; i < CONFIG.totalChances; i++) {
+                if (i < STATE.chancesLeft) {
+                    heartHTML += '<i class="fa-solid fa-circle text-[10px] sm:text-xs text-sky-500 animate-pulse"></i>';
+                } else {
+                    heartHTML += '<i class="fa-solid fa-circle text-[10px] sm:text-xs text-slate-700"></i>';
+                }
+            }
+            shotsLeftEl.innerHTML = heartHTML;
+        }
+
+        function triggerShake() {
+            STATE.screenShake = 12;
+            gameWrapper.classList.add('hit-shake');
+            setTimeout(() => { gameWrapper.classList.remove('hit-shake'); }, 350);
+        }
+
+        function showSplatToast(x, y, type) {
+            let text = "SPLAT!";
+            let color = "#f43f5e"; // default rose
+            
+            switch(type) {
+                case 'tomato': text = "SPLAT!"; color = "#e11d48"; break;
+                case 'egg': text = "SQUISH!"; color = "#fbbf24"; break;
+                case 'slipper': text = "SMACK!"; color = "#06b6d4"; break;
+                case 'banana': text = "MUSH!"; color = "#fde047"; break;
+                case 'mango': text = "SPLAT!"; color = "#f97316"; break;
+                case 'watermelon': text = "CRUNCH!"; color = "#be123c"; break;
+                case 'bat': text = "WHACK!"; color = "#fbbf24"; break;
+                case 'miss': text = "MISSED!"; color = "#94a3b8"; break;
+            }
+
+            hitToast.textContent = text;
+            hitToast.style.left = `${Math.max(10, Math.min(canvas.width - 120, x - 50))}px`;
+            hitToast.style.top = `${Math.max(10, Math.min(canvas.height - 50, y - 40))}px`;
+            hitToast.style.transform = `scale(${(Math.random() * 0.4) + 0.8}) rotate(${(Math.random() * 30) - 15}deg)`;
+            hitToast.style.color = color;
+            
+            hitToast.classList.remove('hidden');
+            setTimeout(() => { hitToast.classList.add('hidden'); }, 550);
+        }
+
+        canvas.addEventListener('mousedown', function(e) {
+            handleArenaClick(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            handleArenaClick(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
+
+        function handleArenaClick(clientX, clientY) {
+            if (STATE.isTransitioning || STATE.chancesLeft <= 0) return;
+
+            const rect = canvas.getBoundingClientRect();
+            // Calculate scale in case canvas CSS size differs from intrinsic size
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const targetX = (clientX - rect.left) * scaleX;
+            const targetY = (clientY - rect.top) * scaleY;
+
+            launchProjectile(targetX, targetY);
+        }
+
+        function launchProjectile(targetX, targetY) {
+            soundEngine.play('whoosh');
+
+            const startX = canvas.width / 2;
+            const startY = canvas.height + 60;
+
+            let projectileEmoji = '🍅';
+            switch(STATE.activeWeapon) {
+                case 'egg': projectileEmoji = '🥚'; break;
+                case 'slipper': projectileEmoji = '🩴'; break;
+                case 'banana': projectileEmoji = '🍌'; break;
+                case 'mango': projectileEmoji = '🥭'; break;
+                case 'watermelon': projectileEmoji = '🍉'; break;
+                case 'bat': projectileEmoji = '🏏'; break;
+            }
+
+            STATE.projectiles.push({
+                startX: startX, startY: startY,
+                targetX: targetX, targetY: targetY,
+                currentX: startX, currentY: startY,
+                progress: 0,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() * 0.2) + 0.1,
+                emoji: projectileEmoji,
+                type: STATE.activeWeapon
+            });
+
+            STATE.chancesLeft--;
+            updateScoreUI();
+        }
+
+        function createSplatExplosion(x, y, type) {
+            let colors = [];
+            let count = 25;
+            let gravity = CONFIG.gravity;
+            
+            switch(type) {
+                case 'tomato': colors = ['#be123c', '#e11d48', '#fb7185']; break;
+                case 'egg': colors = ['#fef08a', '#ffffff', '#fbbf24']; break;
+                case 'banana': colors = ['#fef08a', '#fde047', '#fef9c3']; break;
+                case 'mango': colors = ['#ea580c', '#f97316', '#fdba74']; break;
+                case 'watermelon': colors = ['#be123c', '#e11d48', '#22c55e', '#020617']; count = 35; break;
+                case 'bat': colors = ['#78350f', '#92400e', '#fcd34d']; count = 15; gravity = 0.4; break;
+                case 'slipper': colors = ['#0891b2', '#22d3ee', '#ec4899']; count = 15; gravity = 0.06; break;
+            }
+
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = (Math.random() * 5) + 2;
+                STATE.particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - (type !== 'slipper' ? 1.5 : 0),
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: (Math.random() * 5) + 2.5,
+                    life: 1.0,
+                    decay: (Math.random() * 0.025) + 0.015,
+                    gravity: gravity
+                });
+            }
+        }
+
+        function addSplatMark(x, y, type, isMovingTargetHit) {
+            let splatSize = (Math.random() * 15) + 25;
+            let rotation = Math.random() * Math.PI * 2;
+            let drips = [];
+
+            // Add drips for wet weapons
+            if (['tomato', 'egg', 'banana', 'mango', 'watermelon'].includes(type)) {
+                const numDrips = Math.floor(Math.random() * 3) + 1;
+                for (let i = 0; i < numDrips; i++) {
+                    drips.push({
+                        offsetX: (Math.random() * splatSize * 0.6) - (splatSize * 0.3),
+                        length: 0,
+                        maxLength: (Math.random() * splatSize * 1.2) + (splatSize * 0.3),
+                        width: (Math.random() * 2) + 1.2,
+                        speed: (Math.random() * 0.5) + 0.2
+                    });
+                }
+            }
+
+            const splatObject = {
+                x: x, y: y,
+                type: type,
+                size: splatSize,
+                rotation: rotation,
+                drips: drips,
+                opacity: 1.0
+            };
+
+            if (isMovingTargetHit) {
+                splatObject.x = x - STATE.target.x;
+                splatObject.y = y - STATE.target.y;
+                STATE.target.splats.push(splatObject);
+                if (STATE.target.splats.length > CONFIG.maxAttachedSplats) STATE.target.splats.shift();
+            } else {
+                STATE.bgSplats.push(splatObject);
+            }
+        }
+
+        function updatePhysics() {
+            if (STATE.isTransitioning) return;
+
+            if (STATE.screenShake > 0) {
+                STATE.screenShake *= 0.86;
+                if (STATE.screenShake < 0.1) STATE.screenShake = 0;
+            }
+
+            const stageConfig = CONFIG.stages[STATE.stage] || CONFIG.stages[5];
+            const currentSpeed = stageConfig.speed;
+            const targetRadius = stageConfig.size / 2;
+            STATE.target.radius = targetRadius;
+
+            // AI Dodging Logic
+            let avoidForceX = 0;
+            let avoidForceY = 0;
+
+            if (stageConfig.dodgeRate > 0) {
+                STATE.projectiles.forEach(proj => {
+                    const dx = STATE.target.x - proj.currentX;
+                    const dy = STATE.target.y - proj.currentY;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist < 150 && proj.progress < 0.9) {
+                        const forceFactor = (150 - dist) / 150;
+                        avoidForceX += (dx / dist) * currentSpeed * 2.0 * forceFactor * stageConfig.dodgeRate;
+                        avoidForceY += (dy / dist) * currentSpeed * 2.0 * forceFactor * stageConfig.dodgeRate;
+                    }
+                });
+            }
+
+            STATE.target.vx = (STATE.target.vx * 0.95) + (avoidForceX * 0.05);
+            STATE.target.vy = (STATE.target.vy * 0.95) + (avoidForceY * 0.05);
+
+            const speedMagnitude = Math.sqrt(STATE.target.vx*STATE.target.vx + STATE.target.vy*STATE.target.vy);
+            if (speedMagnitude < currentSpeed) {
+                const angle = Math.atan2(STATE.target.vy, STATE.target.vx) + (Math.random() * 0.4 - 0.2);
+                STATE.target.vx = Math.cos(angle) * currentSpeed;
+                STATE.target.vy = Math.sin(angle) * currentSpeed;
+            }
+
+            STATE.target.x += STATE.target.vx;
+            STATE.target.y += STATE.target.vy;
+            STATE.target.animationFrame += speedMagnitude * 0.04;
+
+            // Boundary checks
+            const margin = targetRadius + 20;
+            if (STATE.target.x < margin) { STATE.target.x = margin; STATE.target.vx = Math.abs(STATE.target.vx); }
+            if (STATE.target.x > canvas.width - margin) { STATE.target.x = canvas.width - margin; STATE.target.vx = -Math.abs(STATE.target.vx); }
+            if (STATE.target.y < margin + 40) { STATE.target.y = margin + 40; STATE.target.vy = Math.abs(STATE.target.vy); }
+            if (STATE.target.y > canvas.height - margin) { STATE.target.y = canvas.height - margin; STATE.target.vy = -Math.abs(STATE.target.vy); }
+
+            // Projectiles update
+            for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
+                const proj = STATE.projectiles[i];
+                proj.progress += 0.045; // Fixed projectile speed
+
+                const dx = proj.targetX - proj.startX;
+                const dy = proj.targetY - proj.startY;
+
+                proj.currentX = proj.startX + dx * proj.progress;
+                const arcHeight = -180 * Math.sin(proj.progress * Math.PI); // Parabolic arc
+                proj.currentY = proj.startY + dy * proj.progress + arcHeight;
+                proj.rotation += proj.rotationSpeed;
+
+                // Impact check
+                if (proj.progress >= 1.0) {
+                    const distToTarget = Math.sqrt(Math.pow(proj.targetX - STATE.target.x, 2) + Math.pow(proj.targetY - STATE.target.y, 2));
+                    const isHit = distToTarget <= STATE.target.radius + 15; // slightly forgiving hit box
+
+                    if (isHit) {
+                        STATE.playerScore++;
+                        soundEngine.play(proj.type);
+                        triggerShake();
+                        createSplatExplosion(proj.targetX, proj.targetY, proj.type);
+                        addSplatMark(proj.targetX, proj.targetY, proj.type, true);
+                        showSplatToast(proj.targetX, proj.targetY, proj.type);
+                    } else {
+                        STATE.bossScore++;
+                        soundEngine.play('slipper'); // Thud sound
+                        createSplatExplosion(proj.targetX, proj.targetY, 'slipper'); // Dust
+                        addSplatMark(proj.targetX, proj.targetY, proj.type, false);
+                        showSplatToast(proj.targetX, proj.targetY, 'miss');
+                    }
+
+                    STATE.projectiles.splice(i, 1);
+                    updateScoreUI();
+                    checkStageOutcome();
+                }
+            }
+
+            // Drip updates
+            const updateDrips = (splats) => {
+                splats.forEach(splat => {
+                    if (splat.drips) {
+                        splat.drips.forEach(drip => {
+                            if (drip.length < drip.maxLength) drip.length += drip.speed;
+                        });
+                    }
+                });
+            };
+            updateDrips(STATE.target.splats);
+            updateDrips(STATE.bgSplats);
+
+            // Particles update
+            for (let i = STATE.particles.length - 1; i >= 0; i--) {
+                const p = STATE.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.gravity;
+                p.life -= p.decay;
+                if (p.life <= 0) STATE.particles.splice(i, 1);
+            }
+        }
+
+        function checkStageOutcome() {
+            if (STATE.projectiles.length > 0) return;
+
+            if (STATE.chancesLeft <= 0) {
+                STATE.isTransitioning = true;
+                setTimeout(() => {
+                    if (STATE.playerScore >= STATE.bossScore) {
+                        soundEngine.play('cheer');
+                        showStageModal(true);
+                    } else {
+                        soundEngine.play('fail');
+                        showStageModal(false);
+                    }
+                }, 500);
+            }
+        }
+
+        function showStageModal(isWin) {
+            if (isWin) {
+                modalEmoji.textContent = '🏆';
+                modalTitle.textContent = `Stage ${STATE.stage} Cleared!`;
+                modalDesc.textContent = `You hit the boy ${STATE.playerScore} times! Ready for a faster run?`;
+                modalActionBtn.textContent = "Start Next Stage";
+                modalActionBtn.className = "bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all";
+                modalActionBtn.onclick = () => {
+                    STATE.stage++;
+                    resetRoundData();
+                };
+            } else {
+                modalEmoji.textContent = '😜';
+                modalTitle.textContent = `Stage ${STATE.stage} Failed!`;
+                modalDesc.textContent = `He dodged ${STATE.bossScore} times! Try to predict his movement.`;
+                modalActionBtn.textContent = "Retry Stage";
+                modalActionBtn.className = "bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all";
+                modalActionBtn.onclick = () => {
+                    resetRoundData();
+                };
+            }
+            gameStateModal.classList.remove('hidden');
+        }
+
+        function resetRoundData() {
+            STATE.chancesLeft = CONFIG.totalChances;
+            STATE.projectiles = [];
+            STATE.particles = [];
+            STATE.bgSplats = [];
+            STATE.target.splats = [];
+            STATE.playerScore = 0;
+            STATE.bossScore = 0;
+            STATE.isTransitioning = false;
+            updateScoreUI();
+            gameStateModal.classList.add('hidden');
+        }
+
+        function paintSplatObject(ctx, splat, relX = 0, relY = 0) {
+            ctx.save();
+            ctx.translate(splat.x + relX, splat.y + relY);
+            ctx.rotate(splat.rotation);
+            ctx.globalAlpha = splat.opacity;
+
+            if (splat.type === 'tomato') {
+                ctx.fillStyle = '#9f1239';
+                ctx.beginPath(); ctx.arc(0, 0, splat.size * 0.55, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#e11d48';
+                ctx.beginPath(); ctx.arc(0, 0, splat.size * 0.45, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#facc15';
+                for (let i = 0; i < 4; i++) {
+                    const angle = (i * Math.PI * 2) / 4;
+                    ctx.beginPath(); ctx.ellipse(Math.cos(angle) * (splat.size * 0.2), Math.sin(angle) * (splat.size * 0.2), 2.5, 4.5, angle, 0, Math.PI*2); ctx.fill();
+                }
+                ctx.fillStyle = '#e11d48';
+                for (let i = 0; i < 7; i++) {
+                    const angle = (i * Math.PI * 2) / 7;
+                    const dist = splat.size * 0.45;
+                    ctx.beginPath(); ctx.moveTo(Math.cos(angle) * dist, Math.sin(angle) * dist); ctx.lineTo(Math.cos(angle - 0.25) * (dist * 1.3), Math.sin(angle - 0.25) * (dist * 1.3)); ctx.lineTo(Math.cos(angle + 0.15) * (dist * 0.95), Math.sin(angle + 0.15) * (dist * 0.95)); ctx.fill();
+                }
+            } else if (splat.type === 'egg') {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+                ctx.beginPath();
+                for (let i = 0; i < 9; i++) {
+                    const angle = (i * Math.PI * 2) / 9;
+                    const r = splat.size * 0.6 + (Math.sin(i * 3.5) * (splat.size * 0.12));
+                    if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                    else ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                }
+                ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#eab308';
+                ctx.beginPath(); ctx.arc(-2, -2, splat.size * 0.25, 0, Math.PI*2); ctx.fill();
+            } else if (splat.type === 'banana') {
+                // Mushy yellow star
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i * Math.PI * 2) / 8;
+                    const r = (i % 2 === 0) ? splat.size * 0.6 : splat.size * 0.3;
+                    if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                    else ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                }
+                ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#fde047';
+                ctx.beginPath(); ctx.arc(0, 0, splat.size * 0.2, 0, Math.PI*2); ctx.fill();
+            } else if (splat.type === 'mango') {
+                // Bright orange thick sticky puddle
+                ctx.fillStyle = '#ea580c';
+                ctx.beginPath(); ctx.arc(0, 0, splat.size * 0.5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath();
+                for(let i=0; i<5; i++) {
+                    const a = (i*Math.PI*2)/5;
+                    ctx.arc(Math.cos(a)*splat.size*0.2, Math.sin(a)*splat.size*0.2, splat.size*0.3, 0, Math.PI*2);
+                }
+                ctx.fill();
+            } else if (splat.type === 'watermelon') {
+                // Red center, green rind fragments, black seeds
+                ctx.fillStyle = '#be123c';
+                ctx.beginPath(); ctx.arc(0, 0, splat.size * 0.6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#22c55e'; // rind
+                for(let i=0; i<3; i++) {
+                    const a = (i*Math.PI*2)/3;
+                    ctx.fillRect(Math.cos(a)*splat.size*0.5, Math.sin(a)*splat.size*0.5, splat.size*0.2, splat.size*0.1);
+                }
+                ctx.fillStyle = '#020617'; // seeds
+                for(let i=0; i<5; i++) {
+                    const a = (i*Math.PI*2)/5 + 0.5;
+                    ctx.beginPath(); ctx.arc(Math.cos(a)*splat.size*0.3, Math.sin(a)*splat.size*0.3, 2, 0, Math.PI*2); ctx.fill();
+                }
+            } else if (splat.type === 'bat') {
+                // Cartoon "WHACK" mark
+                ctx.fillStyle = 'rgba(251, 191, 36, 0.8)';
+                ctx.beginPath();
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i * Math.PI * 2) / 12;
+                    const r = (i % 2 === 0) ? splat.size * 0.8 : splat.size * 0.3;
+                    if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                    else ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                }
+                ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = '#b45309';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            } else if (splat.type === 'slipper') {
+                ctx.strokeStyle = 'rgba(34, 211, 238, 0.55)';
+                ctx.lineWidth = 3.5;
+                ctx.setLineDash([4, 6]);
+                ctx.beginPath(); ctx.arc(0, 0, splat.size * 0.7, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = 'rgba(244, 63, 94, 0.35)';
+                ctx.beginPath();
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i * Math.PI * 2) / 10;
+                    const r = (i % 2 === 0) ? splat.size * 0.55 : splat.size * 0.3;
+                    if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                    else ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                }
+                ctx.closePath(); ctx.fill();
+            }
+            ctx.restore();
+
+            // Paint downward running drips for wet weapons
+            if (splat.drips && splat.drips.length > 0) {
+                ctx.save();
+                ctx.globalAlpha = splat.opacity;
+                // Match drip color to weapon
+                if(splat.type === 'tomato' || splat.type === 'watermelon') ctx.fillStyle = '#9f1239';
+                else if(splat.type === 'mango') ctx.fillStyle = '#ea580c';
+                else if(splat.type === 'banana') ctx.fillStyle = '#fde047';
+                else ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'; // egg
+
+                splat.drips.forEach(drip => {
+                    ctx.beginPath();
+                    const dx = splat.x + relX + drip.offsetX;
+                    const dy = splat.y + relY;
+                    ctx.rect(dx - (drip.width/2), dy, drip.width, drip.length);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(dx, dy + drip.length, drip.width * 1.15, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+            }
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            
+            if (STATE.screenShake > 0) {
+                const shakeX = (Math.random() - 0.5) * STATE.screenShake;
+                const shakeY = (Math.random() - 0.5) * STATE.screenShake;
+                ctx.translate(shakeX, shakeY);
+            }
+
+            // 1. Draw Background Missed Wall Splatters
+            STATE.bgSplats.forEach(splat => paintSplatObject(ctx, splat));
+
+            // 2. Draw Moving Target Character (The Boy)
+            const target = STATE.target;
+            const tRadius = target.radius;
+
+            ctx.save();
+            ctx.translate(target.x, target.y);
+
+            // Legs running animation
+            const legWobble = Math.sin(target.animationFrame) * 14;
+            const legExtend = Math.cos(target.animationFrame) * 10;
+
+            // Skin tone limbs
+            ctx.strokeStyle = '#fcd34d'; // Warm skin tone
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+
+            // Left Leg
+            ctx.beginPath();
+            ctx.moveTo(-tRadius * 0.3, tRadius * 0.8);
+            ctx.lineTo(-tRadius * 0.6 - legExtend, tRadius * 1.35 + legWobble);
+            ctx.stroke();
+            // Left Shoe
+            ctx.fillStyle = '#ef4444'; // Red sneakers
+            ctx.beginPath(); ctx.arc(-tRadius * 0.6 - legExtend, tRadius * 1.35 + legWobble, 6, 0, Math.PI*2); ctx.fill();
+
+            // Right Leg
+            ctx.beginPath();
+            ctx.moveTo(tRadius * 0.3, tRadius * 0.8);
+            ctx.lineTo(tRadius * 0.6 + legExtend, tRadius * 1.35 - legWobble);
+            ctx.stroke();
+            // Right Shoe
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.arc(tRadius * 0.6 + legExtend, tRadius * 1.35 - legWobble, 6, 0, Math.PI*2); ctx.fill();
+
+            // Boy's Clothing (T-Shirt and Shorts)
+            // T-shirt
+            ctx.fillStyle = '#3b82f6'; // Bright blue t-shirt
+            ctx.beginPath();
+            ctx.moveTo(-tRadius * 0.6, tRadius * 0.6); // bottom left
+            ctx.lineTo(tRadius * 0.6, tRadius * 0.6);  // bottom right
+            ctx.lineTo(tRadius * 0.5, tRadius * 0.1);  // top right shoulder
+            ctx.lineTo(-tRadius * 0.5, tRadius * 0.1); // top left shoulder
+            ctx.closePath();
+            ctx.fill();
+            
+            // Shorts
+            ctx.fillStyle = '#1e293b'; // Dark blue shorts
+            ctx.beginPath();
+            ctx.moveTo(-tRadius * 0.6, tRadius * 0.6);
+            ctx.lineTo(tRadius * 0.6, tRadius * 0.6);
+            ctx.lineTo(tRadius * 0.5, tRadius * 0.9);
+            ctx.lineTo(-tRadius * 0.5, tRadius * 0.9);
+            ctx.closePath();
+            ctx.fill();
+
+            // Running animated flailing arms
+            const armWobble = Math.sin(target.animationFrame + Math.PI/2) * 12;
+            ctx.strokeStyle = '#fcd34d'; // Skin tone arms
+            ctx.beginPath();
+            ctx.moveTo(-tRadius * 0.5, tRadius * 0.25);
+            ctx.lineTo(-tRadius * 0.95, tRadius * 0.3 - armWobble);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(tRadius * 0.5, tRadius * 0.25);
+            ctx.lineTo(tRadius * 0.95, tRadius * 0.3 + armWobble);
+            ctx.stroke();
+
+            // Draw Target Face (Selected Shopify Image)
+            ctx.save();
+            ctx.translate(0, -tRadius * 0.4); // Centered head offset
+
+            const activeFaceImg = STATE.loadedFaces[STATE.selectedFaceIndex];
+            if (activeFaceImg && activeFaceImg.complete && activeFaceImg.naturalHeight !== 0) {
+                // Circle Masking
+                ctx.beginPath();
+                ctx.arc(0, 0, tRadius * 1.1, 0, Math.PI * 2);
+                ctx.clip();
+                
+                // Draw face image covering the circle
+                const size = tRadius * 2.2;
+                ctx.drawImage(activeFaceImg, -size/2, -size/2, size, size);
+                
+                // Outer ring
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#0ea5e9'; // Sky blue border matching theme
+                ctx.stroke();
+            } else {
+                // Fallback blank face if image fails to load
+                ctx.fillStyle = '#fcd34d';
+                ctx.beginPath();
+                ctx.arc(0, 0, tRadius * 1.1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#1e293b';
+                ctx.stroke();
+            }
+            ctx.restore(); // restore head translate
+            ctx.restore(); // restore body translate
+
+            // Draw splat marks attached directly to boy
+            target.splats.forEach(splat => paintSplatObject(ctx, splat, target.x, target.y));
+
+            // 3. Draw Flying Projectiles
+            STATE.projectiles.forEach(proj => {
+                ctx.save();
+                ctx.translate(proj.currentX, proj.currentY);
+                ctx.rotate(proj.rotation);
+
+                const sizeScale = 1.9 - (proj.progress * 0.95);
+                ctx.font = `${40 * sizeScale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(2, 6, 23, 0.55)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetY = 20 * (2.0 - proj.progress);
+                ctx.fillText(proj.emoji, 0, 0);
+                ctx.restore();
+            });
+
+            // 4. Draw Splash Particles
+            STATE.particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            });
+
+            ctx.restore(); // camera shake restore
+        }
+
+        function gameLoop() {
+            updatePhysics();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            resizeCanvas();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
